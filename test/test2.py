@@ -3,13 +3,18 @@ import numpy as np
 import cv2
 import os
 
+
+# !TODO invetigate how i can subscribe to an event in the front end, this event comes from a micro service (lambda function AWS) 
+# !TODO something like an RSS feed, 
+from image_transform import four_point_transform
+
 # Create a pipeline
 pipeline = rs.pipeline()
 
 # Configure the pipeline to stream color and depth data
 config = rs.config()
-config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)  # Higher resolution for depth
+config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)  # Higher resolution for color
 
 # Start streaming~!
 pipeline.start(config)
@@ -39,8 +44,49 @@ try:
         # Stack both images horizontally
         images = np.hstack((color_image, depth_colormap))
 
+
+        # Resize frame for better performance
+        # ratio = color_image.shape[0] / 500.0
+        # orig = color_image.copy()
+        # color_image = cv2.resize(color_image, (int(color_image.shape[1] / ratio), int(color_image.shape[0] / ratio)))
+
+        orig = color_image.copy()
+        ratio = 1.0
+
+        # Convert the color_image to grayscale and blur it
+        gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+            # Perform Canny edge detection
+        edged = cv2.Canny(gray, 75, 200)
+
+        # Find contours in the edged frame
+        cnts, _ = cv2.findContours(edged.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
+
+        screenCnt = None
+
+        # Loop over the contours
+        for c in cnts:
+            # Approximate the contour
+            peri = cv2.arcLength(c, True)
+            approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+            # If the approximated contour has four points, then it is likely the target object (ID card-like)
+            if len(approx) == 4:
+                screenCnt = approx
+                break
+
+        # If a four-point contour is found, apply the perspective transform
+        if screenCnt is not None:
+            warped = four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
+            cv2.imshow("Warped", warped)  # Show the warped ID card
+
+        # Display the original frame with detected contours
+        cv2.drawContours(color_image, [screenCnt], -1, (0, 255, 0), 2) if screenCnt is not None else None
+
         # Display the images
-        cv2.imshow('RealSense', images)
+        cv2.imshow('RealSense', color_image)
 
         key = cv2.waitKey(1)
 
