@@ -1,6 +1,12 @@
 import cv2
 import numpy as np
 import time
+from services.mb_chalice_service import MBChaliceService
+from services.AWS_Service import S3Uploader
+
+# initialize s3 uploader
+s3_uploader = S3Uploader(bucket_name="mb-id-storage", region_name='us-east-2')
+mbService = MBChaliceService()
 
 # Initialize video capture
 cap = cv2.VideoCapture(1)
@@ -67,10 +73,19 @@ while True:
                         card_image = original_frame[y:y+h, x:x+w]
 
                         # Save the image
-                        cv2.imwrite('card_image.jpg', card_image)
+                        # cv2.imwrite('card_image.jpg', card_image)
+                        
 
+                        object_url = s3_uploader.upload_cv2_image(card_image, "mb-test-aa/front/front-captured.jpg")
+                        
+                        s3_uploader.notify_image_processed("TestID5", object_url)
+
+
+                        s3_url = s3_uploader.poll_sqs_fifo()
+                        response = mbService.post(data={"front_image_url": s3_url})
                         card_saved = True
-                        print("Card Saved")
+                        
+                        # print(response)
 
                 # Draw the contour on the frame for visualization
                 cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
