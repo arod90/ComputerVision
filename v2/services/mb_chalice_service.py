@@ -4,7 +4,7 @@ import boto3
 
 class MBChaliceService:
     def __init__(self, api_key=None):
-        self.base_url = "http://127.0.0.1:8000"
+        self.base_url = "https://ebj84usrbb.execute-api.us-east-1.amazonaws.com/api/"
         self.api_key = api_key
 
     def _get_headers(self):
