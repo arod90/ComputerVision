@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import time
+import random
 from services.mb_chalice_service import MBChaliceService
 from services.AWS_Service import S3Uploader
 
@@ -77,12 +78,10 @@ while True:
                         
 
                         object_url = s3_uploader.upload_cv2_image(card_image, "mb-test-aa/front/front-captured.jpg")
+                        response = mbService.post(data={"front_image_url": object_url})
+                        s3_uploader.notify_image_processed(random.randrange(0,100000), object_url)
                         
-                        s3_uploader.notify_image_processed("TestID5", object_url)
-
-
-                        s3_url = s3_uploader.poll_sqs_fifo()
-                        response = mbService.post(data={"front_image_url": s3_url})
+                        # s3_url = s3_uploader.poll_sqs_fifo()  
                         card_saved = True
                         
                         # print(response)
