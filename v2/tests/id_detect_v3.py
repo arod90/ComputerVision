@@ -1,35 +1,55 @@
+# this one has the Intelisense camera working
 import cv2
 import numpy as np
 import time
 import random
 from services.mb_chalice_service import MBChaliceService
 from services.AWS_Service import S3Uploader
+import pyrealsense2 as rs
 
 # initialize s3 uploader
 s3_uploader = S3Uploader(bucket_name="mb-id-storage", region_name='us-east-2')
 mbService = MBChaliceService()
 
-# Initialize video capture
-cap = cv2.VideoCapture(1)
+# # Initialize video capture
+# cap = cv2.VideoCapture(1)
 
-# Set camera resolution to high values (adjust as needed)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+# # Set camera resolution to high values (adjust as needed)
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+# Create a pipeline
+pipeline = rs.pipeline()
+
+# Configure the pipeline to stream color and depth data
+config = rs.config()
+config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, 30)  # Higher resolution for depth
+config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, 30)  # Higher resolution for color
+
+# Start streaming~!
+pipeline.start(config)
 
 card_saved = False
 card_detected_time = None
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    # ret, frame = cap.read()
+        # if not ret:
+    #     break
+    # Wait for a coherent pair of frames: depth and color
+    frames = pipeline.wait_for_frames()
+    depth_frame = frames.get_depth_frame()
+    color_frame = frames.get_color_frame()
+    if not depth_frame or not color_frame:
+        continue
+
 
     # Create a copy of the original frame for saving the image later
-    original_frame = frame.copy()
+    original_frame = color_frame.copy()
 
     # Process frame to detect card
     # Convert to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(color_frame, cv2.COLOR_BGR2GRAY)
     
     # Apply Gaussian blur to reduce noise
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -87,7 +107,7 @@ while True:
                         # print(response)
 
                 # Draw the contour on the frame for visualization
-                cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
+                cv2.drawContours(color_frame, [approx], -1, (0, 255, 0), 3)
 
                 break  # Stop processing contours after finding the card
 
@@ -97,12 +117,13 @@ while True:
         card_saved = False
 
     # Show the frame with contours
-    cv2.imshow('Frame', frame)
+    cv2.imshow('Frame', color_frame)
 
     # Break loop on 'q' key
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 # Release resources
-cap.release()
+# cap.release()
+pipeline.stop()
 cv2.destroyAllWindows()
