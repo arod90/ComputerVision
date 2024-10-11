@@ -2,18 +2,19 @@ import cv2
 import numpy as np
 import time
 from utils.utilities import detect_card_color, get_hsv_values, upload_and_process_to_s3
-# import pyrealsense2 as rs
+import pyrealsense2 as rs
 # Create a pipeline
-# pipeline = rs.pipeline()
+pipeline = rs.pipeline()
 # Configure the pipeline to stream color and depth data
-# config = rs.c# Start streaming~!
-# pipeline.start(config)
+config = rs.c# Start streaming~!
+pipeline.start(config)
+
 # Initialize video capture
-cap = cv2.VideoCapture(1)
+# cap = cv2.VideoCapture(1)
 
 # Set camera resolution to high values (adjust as needed)
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 card_saved = False
 card_detected_time = None
@@ -21,15 +22,15 @@ lookup_paused = False
 pause_start_time = None
 
 while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+    # ret, frame = cap.read()
+    # if not ret:
+    #     break
 
-    # frames = pipeline.wait_for_frames()
-    # depth_frame = frames.get_depth_frame()
-    # frame = frames.get_color_frame()
-    # if not depth_frame or not color_frame:
-    #     continue
+    frames = pipeline.wait_for_frames()
+    depth_frame = frames.get_depth_frame()
+    frame = frames.get_color_frame()
+    if not depth_frame or not frame:
+        continue
 
     # Create a copy of the original frame for saving the image later
     original_frame = frame.copy() # color_frame
@@ -147,6 +148,7 @@ while True:
             break
 
 # Release resources
-cap.release()
+# cap.release()
+pipeline.stop()
 cv2.destroyAllWindows()
 
