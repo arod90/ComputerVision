@@ -1,7 +1,8 @@
+
 import cv2
 import numpy as np
 import time
-from utils.utilities import detect_card_color, get_hsv_values, upload_and_process_to_s3
+from utils.utilities import detect_card_color, upload_and_process_to_s3
 import pyrealsense2 as rs
 # Create a pipeline
 pipeline = rs.pipeline()
