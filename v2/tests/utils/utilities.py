@@ -94,31 +94,35 @@ def detect_card_color(card_image):
     return result
 
 def upload_and_process_to_s3(card_type, card_image):
-    # Initialize S3 uploader and MBChaliceService (commented out since implementations are not provided)
+    # Initialize S3 uploader and MBChaliceService
     s3_uploader = S3Uploader(bucket_name="mb-id-storage", region_name='us-east-2')
     mbService = MBChaliceService()
 
     object_url = None
     # Perform validations based on card color
     if card_type == 'old':
-        # Process for green cards
-        # For example, save or upload the image
+        # Process for old cards
         image_filename = f'green_card_{random.randrange(0,100000)}.jpg'
         cv2.imwrite(image_filename, card_image)
         object_url = s3_uploader.upload_cv2_image(card_image, f"mb-test-aa/front/old/{image_filename}")
-        print(f"green card saved as {image_filename}")
+        print(f"Old card saved as {image_filename}")
     elif card_type == 'new':
-        # Process for blue cards
-        # For example, save or upload the image
+        # Process for new cards
         image_filename = f'blue_card_{random.randrange(0,100000)}.jpg'
         cv2.imwrite(image_filename, card_image)
         object_url = s3_uploader.upload_cv2_image(card_image, f"mb-test-aa/front/new/{image_filename}")
-        print(f"Blue card saved as {image_filename}")
+        print(f"New card saved as {image_filename}")
     else:
         # Handle unexpected cases
-        print("Unknown card color detected.")
+        print("Unknown card type detected.")
+        return None
+
     # Process image
     response = mbService.post(data={"id_type": card_type, "front_image_url": object_url})
-    s3_uploader.notify_image_processed(random.randrange(0,100000), object_url)
+    
+    # Convert the random integer to a string for MessageDeduplicationId
+    deduplication_id = str(random.randrange(0,100000))
+    s3_uploader.notify_image_processed(deduplication_id, object_url)
+    
     s3_url = s3_uploader.poll_sqs_fifo()
     return object_url
