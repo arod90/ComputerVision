@@ -1,21 +1,15 @@
-
 import cv2
 import numpy as np
 import time
 from utils.utilities import detect_card_color, upload_and_process_to_s3
 import pyrealsense2 as rs
+
 # Create a pipeline
 pipeline = rs.pipeline()
 # Configure the pipeline to stream color and depth data
-config = rs.c# Start streaming~!
+config = rs.config()
+# Start streaming
 pipeline.start(config)
-
-# Initialize video capture
-# cap = cv2.VideoCapture(1)
-
-# Set camera resolution to high values (adjust as needed)
-# cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-# cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 card_saved = False
 card_detected_time = None
@@ -23,18 +17,21 @@ lookup_paused = False
 pause_start_time = None
 
 while True:
-    # ret, frame = cap.read()
-    # if not ret:
-    #     break
-
     frames = pipeline.wait_for_frames()
     depth_frame = frames.get_depth_frame()
-    frame = frames.get_color_frame()
-    if not depth_frame or not frame:
+    color_frame = frames.get_color_frame()
+    if not depth_frame or not color_frame:
         continue
 
+    # Convert images to numpy arrays
+    depth_image = np.asanyarray(depth_frame.get_data())
+    color_image = np.asanyarray(color_frame.get_data())
+
     # Create a copy of the original frame for saving the image later
-    original_frame = frame.copy() # color_frame
+    original_frame = np.copy(color_image)  # Changed this line
+
+    # Rest of your code remains the same...
+
     if lookup_paused:
         # Check if 5 seconds have passed since the pause started
         elapsed_pause_time = time.time() - pause_start_time
@@ -49,10 +46,10 @@ while True:
         else:
             # Display a message on the frame indicating the pause
             remaining_time = max(0, 5 - elapsed_pause_time)
-            cv2.putText(frame, f"Processing... {int(remaining_time)}s", (10, 30),
+            cv2.putText(color_image, f"Processing... {int(remaining_time)}s", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
             # Show the frame
-            cv2.imshow('Frame', frame)
+            cv2.imshow('Frame', color_image)
             # Break loop on 'q' key
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -60,7 +57,7 @@ while True:
     else:
         # Process frame to detect card
         # Convert to grayscale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
         
         # Apply Gaussian blur to reduce noise
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -112,11 +109,7 @@ while True:
                             object_url = upload_and_process_to_s3(card_type, card_image)
 
                             # Provide a visual signal on the frame
-                            cv2.putText(frame, f"{card_type.capitalize()} Card Captured", (10, 30),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-                            # Provide a visual signal on the frame
-                            cv2.putText(frame, "Image Captured", (10, 30),
+                            cv2.putText(color_image, f"{card_type.capitalize()} Card Captured", (10, 30),
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
                             # Pause the lookup process
@@ -126,7 +119,7 @@ while True:
                             print("Lookup process paused for 5 seconds.")
 
                     # Draw the contour on the frame for visualization
-                    cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
+                    cv2.drawContours(color_image, [approx], -1, (0, 255, 0), 3)
                     break  # Stop processing contours after finding the card
 
         if not card_present:
@@ -138,18 +131,16 @@ while True:
         if card_detected_time is not None and not card_saved:
             elapsed_time = time.time() - card_detected_time
             remaining_time = max(0, 2 - elapsed_time)
-            cv2.putText(frame, f"Capturing in {remaining_time:.1f}s", (10, 60),
+            cv2.putText(color_image, f"Capturing in {remaining_time:.1f}s", (10, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Show the frame with contours and messages
-        cv2.imshow('Frame', frame)
+        cv2.imshow('Frame', color_image)
 
         # Break loop on 'q' key
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
 # Release resources
-# cap.release()
 pipeline.stop()
 cv2.destroyAllWindows()
-
