@@ -26,6 +26,8 @@ card_detected_time = None
 lookup_paused = False
 pause_start_time = None
 
+card_detection_time = 1
+camera_pause_time = 1
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -50,7 +52,7 @@ while True:
     if lookup_paused:
         # Check if 5 seconds have passed since the pause started
         elapsed_pause_time = time.time() - pause_start_time
-        if elapsed_pause_time >= 4:
+        if elapsed_pause_time >= camera_pause_time:
             # Unpause the lookup process
             lookup_paused = False
             pause_start_time = None
@@ -60,7 +62,7 @@ while True:
             print("Lookup process restarted.")
         else:
             # Display a message on the frame indicating the pause
-            remaining_time = max(0, 5 - elapsed_pause_time)
+            remaining_time = max(0, camera_pause_time - elapsed_pause_time)
             cv2.putText(frame, f"Processing... {int(remaining_time)}s", (10, 30),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
             # Show the frame
@@ -103,7 +105,7 @@ while True:
                     else:
                         # Check if 2 seconds have passed since the card was detected
                         elapsed_time = time.time() - card_detected_time
-                        if elapsed_time >= 1 and not card_saved:
+                        if elapsed_time >= card_detection_time and not card_saved:
                             # Get the bounding rect
                             x, y, w, h = cv2.boundingRect(approx)
 
@@ -121,8 +123,7 @@ while True:
                             print(f"Detected card color: {card_type}")
 
                             # process image and upload to s3 and notify
-                            object_url = upload_and_process_to_s3(card_type, card_image)
-
+                            upload_and_process_to_s3(card_type, card_image)
                             # Provide a visual signal on the frame
                             cv2.putText(frame, f"{card_type.capitalize()} Card Captured", (10, 30),
                                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
@@ -131,7 +132,7 @@ while True:
                             lookup_paused = True
                             pause_start_time = time.time()
                             card_saved = True
-                            print("Lookup process paused for 5 seconds.")
+                            print("Lookup process paused")
 
                     # Draw the contour on the frame for visualization
                     cv2.drawContours(frame, [approx], -1, (0, 255, 0), 3)
@@ -145,7 +146,7 @@ while True:
         # Display a countdown timer for capturing
         if card_detected_time is not None and not card_saved:
             elapsed_time = time.time() - card_detected_time
-            remaining_time = max(0, 2 - elapsed_time)
+            remaining_time = max(0, card_detection_time - elapsed_time)
             cv2.putText(frame, f"Capturing in {remaining_time:.1f}s", (10, 60),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 

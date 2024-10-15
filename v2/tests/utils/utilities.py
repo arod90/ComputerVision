@@ -119,8 +119,8 @@ def upload_and_process_to_s3(card_type, card_image):
 
     # Process image
     print("PROCESSING IMAGE")
-    response = mbService.post(data={"id_type": card_type, "front_image_url": object_url})
-    print("IMAGE PROCESSED")
+    api_task = mbService.post(data={"id_type": card_type, "front_image_url": object_url})
+
     # Convert the random integer to a string for MessageDeduplicationId
     deduplication_id = str(random.randrange(0,100000))
     s3_uploader.notify_image_processed(deduplication_id, object_url)
