@@ -35,10 +35,10 @@ def detect_card_color(card_image):
     # Convert the image to HSV color space
     hsv_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2HSV)
 
-    # Display the HSV image (convert back to BGR for proper color display)
-    hsv_bgr = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
-    cv2.imshow('HSV Image', hsv_bgr)
-    cv2.waitKey(1)
+    # # Display the HSV image (convert back to BGR for proper color display)
+    # hsv_bgr = cv2.cvtColor(hsv_image, cv2.COLOR_HSV2BGR)
+    # cv2.imshow('HSV Image', hsv_bgr)
+    # cv2.waitKey(1)
 
     # # Assuming card_image is your cropped card image
     # hsv_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2HSV)
@@ -70,11 +70,11 @@ def detect_card_color(card_image):
     mask_blue = cv2.inRange(hsv_image, lower_blue, upper_blue)
     mask_white = cv2.inRange(hsv_image, lower_white, upper_white)
 
-    # Display the masks
-    cv2.imshow('Green Mask', mask_green)
-    cv2.imshow('Blue Mask', mask_blue)
-    cv2.imshow('White Mask', mask_white)
-    cv2.waitKey(1)
+    # # Display the masks
+    # cv2.imshow('Green Mask', mask_green)
+    # cv2.imshow('Blue Mask', mask_blue)
+    # cv2.imshow('White Mask', mask_white)
+    # cv2.waitKey(1)
 
     # Count the number of pixels in each mask
     num_green = cv2.countNonZero(mask_green)
@@ -118,8 +118,9 @@ def upload_and_process_to_s3(card_type, card_image):
         return None
 
     # Process image
+    print("PROCESSING IMAGE")
     response = mbService.post(data={"id_type": card_type, "front_image_url": object_url})
-    
+    print("IMAGE PROCESSED")
     # Convert the random integer to a string for MessageDeduplicationId
     deduplication_id = str(random.randrange(0,100000))
     s3_uploader.notify_image_processed(deduplication_id, object_url)
