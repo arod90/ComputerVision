@@ -125,5 +125,5 @@ def upload_and_process_to_s3(card_type, card_image):
     deduplication_id = str(random.randrange(0,100000))
     s3_uploader.notify_image_processed(deduplication_id, object_url)
     
-    s3_url = s3_uploader.poll_sqs_fifo()
+    # s3_url = s3_uploader.poll_sqs_fifo()
     return object_url
