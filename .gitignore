@@ -1,1 +1,7 @@
 .venv/*
+v2/tests/blue_card_*.jpg
+v2/tests/green_card_*.jpg
+v2/blue_card_*.jpg
+v2/green_card_*.jpg
+blue_card_*.jpg
+green_card_*.jpg
